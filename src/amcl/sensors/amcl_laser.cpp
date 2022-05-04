@@ -61,15 +61,18 @@ AMCLLaser::~AMCLLaser()
 	}
 	delete []temp_obs; 
   }
-
-  freeIgnoreMap();
 }
 
 void AMCLLaser::setIgnoreMap(map_t *ignore_map)
 {
-  freeIgnoreMap();
+  if(ignore_map == NULL)
+  {
+    ignore_map_ = NULL;
+    return;
+  }
 
-  if(ignore_map->size_x == map->size_x &&
+  if(map != NULL &&
+    ignore_map->size_x == map->size_x &&
     ignore_map->size_y == map->size_y &&
     ignore_map->origin_x == map->origin_x &&
     ignore_map->origin_y == map->origin_y &&
@@ -77,14 +80,8 @@ void AMCLLaser::setIgnoreMap(map_t *ignore_map)
   {
     ignore_map_ = ignore_map;
   }
-}
-
-void
-AMCLLaser::freeIgnoreMap()
-{
-  if (ignore_map_ != NULL)
+  else
   {
-    map_free(this->ignore_map_);
     ignore_map_ = NULL;
   }
 }

@@ -155,7 +155,6 @@ class AmclNode
 
     tf2::Transform latest_tf_;
     bool latest_tf_valid_;
-    nav_msgs::OccupancyGrid ignore_grid_msg_;
 
     // Pose-generating function used to uniformly distribute particles over
     // the map
@@ -176,10 +175,11 @@ class AmclNode
     void handleInitialPoseMessage(const geometry_msgs::PoseWithCovarianceStamped& msg);
     void mapReceived(const nav_msgs::OccupancyGridConstPtr& msg);
     void ignoreMapReceived(const nav_msgs::OccupancyGridConstPtr& msg);
-    void updateIgnoreMap(const nav_msgs::OccupancyGrid& ignore_grid);
+    void updateIgnoreMap(map_t* ignore_map);
 
     void handleMapMessage(const nav_msgs::OccupancyGrid& msg);
     void freeMapDependentMemory();
+    void freeIgnoreMap();
     map_t* convertMap( const nav_msgs::OccupancyGrid& map_msg );
     void updatePoseFromServer();
     void applyInitialPose();
@@ -205,6 +205,7 @@ class AmclNode
     geometry_msgs::PoseWithCovarianceStamped last_published_pose;
 
     map_t* map_;
+    map_t* ignore_map_;
     char* mapdata;
     int sx, sy;
     double resolution;
@@ -358,6 +359,7 @@ AmclNode::AmclNode() :
         sent_first_transform_(false),
         latest_tf_valid_(false),
         map_(NULL),
+        ignore_map_(NULL),
         pf_(NULL),
         resample_count_(0),
         odom_(NULL),
@@ -904,22 +906,22 @@ AmclNode::ignoreMapReceived(const nav_msgs::OccupancyGridConstPtr& msg)
            msg->info.height,
            msg->info.resolution);
 
-  ignore_grid_msg_ = *msg;
-  updateIgnoreMap(ignore_grid_msg_);
+  freeIgnoreMap();
+  ignore_map_ = convertMap(*msg);
+  updateIgnoreMap(ignore_map_);
 }
 
 void
-AmclNode::updateIgnoreMap(const nav_msgs::OccupancyGrid& ignore_grid)
+AmclNode::updateIgnoreMap(map_t* ignore_map)
 {
-  if (ignore_grid.data.empty())
+  if(laser_ == NULL)
   {
     return;
   }
-
-  laser_->setIgnoreMap(convertMap(ignore_grid));
+  laser_->setIgnoreMap(ignore_map);
   for (AMCLLaser* laser : lasers_)
   {
-    laser->setIgnoreMap(convertMap(ignore_grid));
+    laser->setIgnoreMap(ignore_map);
   }
 }
 
@@ -988,7 +990,7 @@ AmclNode::handleMapMessage(const nav_msgs::OccupancyGrid& msg)
   laser_ = new AMCLLaser(max_beams_, map_);
   ROS_ASSERT(laser_);
 
-  updateIgnoreMap(ignore_grid_msg_);
+  updateIgnoreMap(ignore_map_);
 
   if(laser_model_type_ == LASER_MODEL_BEAM)
     laser_->SetModelBeam(z_hit_, z_short_, z_max_, z_rand_,
@@ -1032,6 +1034,14 @@ AmclNode::freeMapDependentMemory()
   laser_ = NULL;
 }
 
+void AmclNode::freeIgnoreMap()
+{
+  if (ignore_map_ != NULL) {
+    map_free(ignore_map_);
+    ignore_map_ = NULL;
+  }
+}
+
 /**
  * Convert an OccupancyGrid map message into the internal
  * representation.  This allocates a map_t and returns it.
@@ -1067,6 +1077,7 @@ AmclNode::~AmclNode()
 {
   delete dsrv_;
   freeMapDependentMemory();
+  freeIgnoreMap();
   delete laser_scan_filter_;
   delete laser_scan_sub_;
   // TODO: delete everything allocated in constructor

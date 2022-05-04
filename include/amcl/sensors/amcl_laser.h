@@ -108,9 +108,6 @@ class AMCLLaser : public AMCLSensor
   // Set Ignore map
   public: void setIgnoreMap(map_t* ignore_grid);
 
-  // Free memory of allocated ignore map
-  private: void freeIgnoreMap();
-
   // Check if beam should be ignored
   private: bool ignoreBeam(int mx, int my);
 
