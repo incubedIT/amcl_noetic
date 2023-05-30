@@ -11,3 +11,4 @@ Fork from https://github.com/ros-planning/navigation/tree/noetic-devel/amcl at h
 * Added possibility to ignore beams during calculating probability for the given pose
 * Avoid that the amcl node writes its last pose to the parameter server
 * Fix a bug in the handling of ignore maps
+* add subscription to /tf_static and clear lasers in callback

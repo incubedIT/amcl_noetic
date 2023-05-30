@@ -261,6 +261,8 @@ class AmclNode
     ros::Subscriber initial_pose_sub_old_;
     ros::Subscriber map_sub_;
     ros::Subscriber ignore_map_sub_;
+    // subscriber for /tf_static to 'see' changes
+    ros::Subscriber tf_static_sub_;
 
     diagnostic_updater::Updater diagnosic_updater_;
     void standardDeviationDiagnostics(diagnostic_updater::DiagnosticStatusWrapper& diagnostic_status);
@@ -512,6 +514,18 @@ AmclNode::AmclNode() :
   m_force_update = false;
 
   ignore_map_sub_ = nh_.subscribe("ignore_map", 1, &AmclNode::ignoreMapReceived, this);
+
+  // subscribe to /tf_static
+  tf_static_sub_ = nh_.subscribe<tf2_msgs::TFMessage>("/tf_static", 1,
+                                                     [this](const tf2_msgs::TFMessage::ConstPtr& msg)
+                                                     {
+                                                       ROS_INFO("AmclNode::tf_static_sub_ changed callback");
+                                                       // Clear queued laser objects so that their parameters get updated
+                                                       lasers_.clear();
+                                                       lasers_update_.clear();
+                                                       frame_to_laser_.clear();
+                                                     });
+
 
   dsrv_ = new dynamic_reconfigure::Server<amcl::AMCLConfig>(ros::NodeHandle("~"));
   dynamic_reconfigure::Server<amcl::AMCLConfig>::CallbackType cb = boost::bind(&AmclNode::reconfigureCB, this, _1, _2);
