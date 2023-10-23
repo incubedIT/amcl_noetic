@@ -633,6 +633,19 @@ void AmclNode::reconfigureCB(AMCLConfig &config, uint32_t level)
   lasers_update_.clear();
   frame_to_laser_.clear();
 
+  if(!map_)
+  {
+    ROS_WARN("Map is null, initialize map with a dummy map");
+    // Init with dummy map
+    map_ = map_alloc();
+    map_->size_x = 1;
+    map_->size_y = 1;
+    map_->scale = 0.05;
+    map_->origin_x = (map_->size_x / 2.0) * map_->scale;
+    map_->origin_y = (map_->size_y / 2.0) * map_->scale;
+    map_->cells = (map_cell_t*)malloc(sizeof(map_cell_t)*map_->size_x*map_->size_y);
+  }
+
   if( pf_ != NULL )
   {
     pf_free( pf_ );

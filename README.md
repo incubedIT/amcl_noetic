@@ -12,3 +12,4 @@ Fork from https://github.com/ros-planning/navigation/tree/noetic-devel/amcl at h
 * Avoid that the amcl node writes its last pose to the parameter server
 * Fix a bug in the handling of ignore maps
 * add subscription to /tf_static and clear lasers in callback
+* Make sure amcl-laser and particle filter is not initialized with a nullptr as map
